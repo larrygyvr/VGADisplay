@@ -1,0 +1,99 @@
+-- Filename: lab3_task2
+-- Author 1: Harry Gong
+-- Author 1 Student #:301223952
+-- Author 2:He Sun
+-- Author 2 Student #:301243992
+-- Group Number:42
+-- Lab Section
+-- Lab:
+-- Task Completed:
+-- Date: 21/02/2017
+------------------------------------------------------------------------------------
+
+library ieee;
+use ieee.std_logic_1164.all;
+use ieee.numeric_std.all;
+
+entity lab3_task2 is
+  port(CLOCK_50            : in  std_logic;
+       KEY                 : in  std_logic_vector(3 downto 0);
+       SW                  : in  std_logic_vector(17 downto 0);
+       VGA_R, VGA_G, VGA_B : out std_logic_vector(9 downto 0);  -- The outs go to VGA controller
+       VGA_HS              : out std_logic;
+       VGA_VS              : out std_logic;
+       VGA_BLANK           : out std_logic;
+       VGA_SYNC            : out std_logic;
+       VGA_CLK             : out std_logic);
+end lab3_task2;
+
+architecture rtl of lab3_task2 is
+
+
+ --Component from the Verilog file: vga_adapter.v
+
+  component vga_adapter
+    generic(RESOLUTION : string);
+    port (resetn                                       : in  std_logic;
+          clock                                        : in  std_logic;
+          colour                                       : in  std_logic_vector(2 downto 0);
+          x                                            : in  std_logic_vector(7 downto 0);
+          y                                            : in  std_logic_vector(6 downto 0);
+          plot                                         : in  std_logic;
+          VGA_R, VGA_G, VGA_B                          : out std_logic_vector(9 downto 0);
+          VGA_HS, VGA_VS, VGA_BLANK, VGA_SYNC, VGA_CLK : out std_logic);
+  end component;
+
+  signal x      : std_logic_vector(7 downto 0);
+  signal y      : std_logic_vector(6 downto 0);
+  signal colour : std_logic_vector(2 downto 0);
+  signal plot   : std_logic;
+
+begin
+
+  -- includes the vga adapter, which should be in your project 
+
+  vga_u0 : vga_adapter
+    generic map(RESOLUTION => "160x120") 
+    port map(resetn    => KEY(3),
+             clock     => CLOCK_50,
+             colour    => colour,
+             x         => x,
+             y         => y,
+             plot      => plot,
+             VGA_R     => VGA_R,
+             VGA_G     => VGA_G,
+             VGA_B     => VGA_B,
+             VGA_HS    => VGA_HS,
+             VGA_VS    => VGA_VS,
+             VGA_BLANK => VGA_BLANK,
+             VGA_SYNC  => VGA_SYNC,
+             VGA_CLK   => VGA_CLK);
+
+
+  -- rest of your code goes here, as well as possibly additional files
+
+	process(clock_50, key(3))
+	begin
+		if(rising_edge(clock_50)) then
+			if(unsigned(y) <="1110111") then -- when y axis is smaller than 119
+				if(unsigned(x) <= "10011111") then -- when x axis is smaller than 159
+					plot<='1'; -- enable plot signal to plot the dot
+					x<=std_logic_vector(unsigned(x)+1);
+					colour<= std_logic_vector(to_unsigned(to_integer(unsigned(x)) mod 8, colour'length));
+				else -- when one column finished go to next row
+					plot<='0';
+					y<=std_logic_vector(unsigned(y)+1);
+					x<="00000000"; -- reset the x to first column
+					colour<="000";
+				end if;
+			else -- finished all the plot
+				plot<='0';
+				y<="0000000";
+				colour <="000";
+			
+			end if;
+		end if;
+	end process;
+end RTL;
+
+
